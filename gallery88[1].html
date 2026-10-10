@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery88</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #050505;
+        --text: #ededed;
+        --card-bg: #111111;
+        --shadow: rgba(0, 0, 0, 0.8);
+        --transition: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.light {
+        --bg: #f5f5f7;
+        --text: #111111;
+        --card-bg: #ffffff;
+        --shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        transition: background 0.6s var(--transition), color 0.6s var(--transition);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    #progress-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        background: var(--text);
+        width: 0%;
+        z-index: 2000;
+        opacity: 0.5;
+    }
+
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 1.6rem 2.4rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 100;
+    }
+
+    header h1 {
+        font-family: 'UnifrakturMaguntia', cursive;
+        font-size: 2.2rem;
+        font-weight: 400;
+        letter-spacing: 0.05em;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .upload-btn {
+        background: var(--text);
+        color: var(--bg);
+        border: none;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 10px 18px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.2s var(--transition), opacity 0.2s ease;
+    }
+
+    .upload-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+
+    .status-readout {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        opacity: 0.4;
+        text-align: right;
+        line-height: 1.9;
+    }
+
+    .status-readout .led {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text);
+        margin-right: 6px;
+        animation: ledPulse 1.8s ease-in-out infinite;
+        vertical-align: middle;
+    }
+
+    @keyframes ledPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.2; }
+    }
+
+    main {
+        display: flex;
+        align-items: center;
+        height: 100vh;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0 15vw;
+        gap: 5vw;
+        -webkit-overflow-scrolling: touch;
+        perspective: 1200px;
+        mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    }
+
+    main::-webkit-scrollbar { display: none; }
+
+    .card {
+        flex: 0 0 auto;
+        width: 45vw;
+        max-width: 620px;
+        height: 62vh;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 15px 40px var(--shadow);
+        transform: rotateY(-8deg) scale(0.92);
+        background: var(--card-bg);
+        position: relative;
+        filter: grayscale(60%) brightness(0.7);
+        opacity: 0.65;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        will-change: transform, opacity, filter;
+        transition: transform 0.7s var(--transition),
+                    box-shadow 0.7s var(--transition),
+                    filter 0.7s var(--transition),
+                    opacity 0.7s var(--transition);
+    }
+
+    .card.active {
+        transform: rotateY(0deg) scale(1);
+        box-shadow: 0 30px 80px var(--shadow);
+        z-index: 10;
+        filter: grayscale(0%) brightness(1);
+        opacity: 1;
+    }
+
+    .card.selected {
+        transform: rotateY(0deg) scale(1.04);
+        box-shadow: 0 40px 100px var(--shadow), 0 0 0 2px var(--text);
+    }
+
+    .card img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 1.4rem;
+    }
+
+    .empty-state {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        z-index: 500;
+        cursor: pointer;
+        text-align: center;
+        padding: 30px;
+        transition: opacity 0.4s ease;
+    }
+
+    .empty-state.hidden { opacity: 0; pointer-events: none; }
+
+    .empty-icon {
+        font-size: 3.2rem;
+        opacity: 0.35;
+        animation: float 5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .empty-title {
+        font-family: 'UnifrakturMaguntia', cursive;
+        font-size: 1.7rem;
+        font-weight: 400;
+        opacity: 0.85;
+    }
+
+    .empty-sub {
+        font-size: 0.82rem;
+        font-weight: 300;
+        opacity: 0.5;
+        max-width: 380px;
+        line-height: 1.8;
+    }
+
+    .empty-btn {
+        margin-top: 10px;
+        background: var(--text);
+        color: var(--bg);
+        border: none;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 12px 26px;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+
+    .hud {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.7rem 1rem;
+        background: var(--card-bg);
+        border-radius: 60px;
+        box-shadow: 0 10px 30px var(--shadow);
+        z-index: 1000;
+        opacity: 0;
+        transition: background 0.6s var(--transition), opacity 0.5s var(--transition);
+    }
+
+    .hud.visible { opacity: 0.9; }
+
+    .hud-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3rem 0.5rem;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        transition: all 0.25s var(--transition);
+        min-width: 52px;
+    }
+
+    .hud-item.active {
+        background: var(--bg);
+        border-color: var(--text);
+        transform: translateY(-3px);
+    }
+
+    .hud-emoji {
+        font-size: 1.05rem;
+        line-height: 1;
+        filter: grayscale(0.6) opacity(0.55);
+    }
+
+    .hud-item.active .hud-emoji { filter: grayscale(0) opacity(1); }
+
+    .hud-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.48rem;
+        letter-spacing: 0.1em;
+        opacity: 0.5;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .hud-item.active .hud-label { opacity: 1; }
+
+    .hand-cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 46px;
+        height: 46px;
+        pointer-events: none;
+        z-index: 1500;
+        display: none;
+        will-change: transform;
+    }
+
+    .hand-cursor .ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1.5px solid var(--text);
+        opacity: 0.75;
+    }
+
+    .hand-cursor .dot {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: var(--text);
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .hold-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        width: 0%;
+        background: var(--text);
+        z-index: 2000;
+        opacity: 0.85;
+    }
+
+    /* Hand skeleton preview replaces the camera video */
+    .hand-skeleton {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 170px;
+        height: 128px;
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px var(--shadow);
+        z-index: 900;
+        opacity: 0.85;
+        transition: background 0.6s var(--transition), opacity 0.3s ease;
+    }
+
+    .skeleton-label {
+        position: absolute;
+        bottom: 6px;
+        right: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.5rem;
+        letter-spacing: 0.15em;
+        color: var(--text);
+        opacity: 0.4;
+        pointer-events: none;
+        z-index: 901;
+    }
+
+    .privacy-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(16px);
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .privacy-card {
+        background: var(--card-bg);
+        border-radius: 24px;
+        padding: 36px 32px 28px;
+        max-width: 460px;
+        width: 100%;
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
+        line-height: 1.7;
+        color: var(--text);
+    }
+
+    .privacy-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 1.5px solid var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin: 0 auto 22px;
+        opacity: 0.85;
+    }
+
+    .privacy-card h2 {
+        font-family: 'UnifrakturMaguntia', cursive;
+        font-weight: 400;
+        font-size: 1.6rem;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .privacy-card ul {
+        list-style: none;
+        margin-bottom: 24px;
+    }
+
+    .privacy-card li {
+        padding: 9px 0 9px 26px;
+        position: relative;
+        opacity: 0.75;
+        border-bottom: 1px solid rgba(127, 127, 127, 0.15);
+        font-size: 0.88rem;
+        font-weight: 300;
+    }
+
+    .privacy-card li:last-child { border-bottom: none; }
+
+    .privacy-card li::before {
+        content: "—";
+        position: absolute;
+        left: 0;
+    }
+
+    .privacy-card .hl { font-weight: 600; opacity: 1; }
+
+    .privacy-card button {
+        width: 100%;
+        background: var(--text);
+        color: var(--bg);
+        border: none;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.8rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 16px;
+        border-radius: 14px;
+        cursor: pointer;
+    }
+
+    .privacy-card button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+    }
+
+    .error-note {
+        display: none;
+        padding: 12px 14px;
+        background: rgba(255, 71, 87, 0.12);
+        border: 1px solid rgba(255, 71, 87, 0.4);
+        border-radius: 10px;
+        color: #ff8a95;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        margin-bottom: 18px;
+        text-align: center;
+    }
+
+    .error-note.show { display: block; }
+
+    footer {
+        position: fixed;
+        bottom: 1.6rem;
+        left: 2.4rem;
+        font-size: 0.7rem;
+        font-weight: 300;
+        opacity: 0.4;
+        z-index: 100;
+    }
+
+    footer a { color: inherit; text-decoration: none; }
+
+    @media (max-width: 768px) {
+        header { padding: 1.2rem 1rem; }
+        header h1 { font-size: 1.6rem; }
+        .status-readout { display: none; }
+        .upload-btn { font-size: 0.62rem; padding: 8px 12px; }
+        main {
+            padding: 80px 5vw 130px 5vw;
+            gap: 5vw;
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        }
+        .card { width: 85vw; height: 55vh; }
+        .card img { padding: 0.7rem; }
+        .hud { bottom: 1.2rem; gap: 0.2rem; padding: 0.5rem 0.6rem; }
+        .hud-item { min-width: 42px; padding: 0.2rem 0.25rem; }
+        .hud-emoji { font-size: 0.9rem; }
+        .hud-label { font-size: 0.42rem; }
+        .hand-skeleton { width: 110px; height: 82px; bottom: 5.4rem; right: 1rem; }
+        footer { display: none; }
+    }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<header>
+    <h1>Gallery88</h1>
+    <div class="header-right">
+        <button class="upload-btn" id="uploadBtn">Load Images</button>
+        <div class="status-readout">
+            <div><span class="led"></span><span id="statusText">Loading</span></div>
+            <div id="statusCounter">000 / 000</div>
+        </div>
+    </div>
+</header>
+
+<main id="gallery"></main>
+
+<div class="empty-state" id="emptyState">
+    <div class="empty-icon">◐</div>
+    <div class="empty-title">Your gallery awaits</div>
+    <div class="empty-sub">
+        Click below or drop images anywhere to begin.<br>
+        Everything stays on your device.
+    </div>
+    <button class="empty-btn" id="emptyBtn">Choose Images</button>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+
+<div class="hud" id="hud">
+    <div class="hud-item" data-gesture="FIST">
+        <span class="hud-emoji">✊</span>
+        <span class="hud-label">Reset</span>
+    </div>
+    <div class="hud-item" data-gesture="ONE">
+        <span class="hud-emoji">☝️</span>
+        <span class="hud-label">Cursor</span>
+    </div>
+    <div class="hud-item" data-gesture="TWO">
+        <span class="hud-emoji">✌️</span>
+        <span class="hud-label">Next</span>
+    </div>
+    <div class="hud-item" data-gesture="THREE">
+        <span class="hud-emoji">🤟</span>
+        <span class="hud-label">Prev</span>
+    </div>
+    <div class="hud-item" data-gesture="FOUR">
+        <span class="hud-emoji">🖖</span>
+        <span class="hud-label">Theme</span>
+    </div>
+    <div class="hud-item" data-gesture="FIVE">
+        <span class="hud-emoji">✋</span>
+        <span class="hud-label">Navigate</span>
+    </div>
+</div>
+
+<div class="hold-bar" id="holdBar"></div>
+
+<div class="hand-cursor" id="handCursor">
+    <div class="ring"></div>
+    <div class="dot"></div>
+</div>
+
+<canvas class="hand-skeleton" id="handCanvas" width="170" height="128"></canvas>
+<div class="skeleton-label" id="skeletonLabel">HAND</div>
+
+<video id="cam" autoplay playsinline muted style="display:none"></video>
+
+<footer>
+    Copyright © 2026 <a href="mailto:mohamed005cheikh@gmail.com">mohamed005cheikh@gmail.com</a> | by MC88
+</footer>
+
+<div class="privacy-overlay" id="privacyOverlay">
+    <div class="privacy-card">
+        <div class="privacy-icon">◐</div>
+        <h2>Your Privacy</h2>
+        <div class="error-note" id="errorNote"></div>
+        <ul>
+            <li>Camera runs <span class="hl">only on your device</span> to read hand gestures.</li>
+            <li>You will only see a <span class="hl">hand skeleton preview</span>, not yourself.</li>
+            <li>Photos load <span class="hl">directly into memory</span>, never uploaded.</li>
+            <li>This site has <span class="hl">no backend server</span>. Source code is open.</li>
+        </ul>
+        <button id="privacyOk">Enter Gallery</button>
+    </div>
+</div>
+
+<script type="module">
+    import { HandLandmarker, FilesetResolver } from
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm';
+
+    const gallery       = document.getElementById('gallery');
+    const progressBar   = document.getElementById('progress-bar');
+    const statusText    = document.getElementById('statusText');
+    const statusCounter = document.getElementById('statusCounter');
+    const emptyState    = document.getElementById('emptyState');
+    const emptyBtn      = document.getElementById('emptyBtn');
+    const uploadBtn     = document.getElementById('uploadBtn');
+    const fileInput     = document.getElementById('fileInput');
+    const hud           = document.getElementById('hud');
+    const handCursor    = document.getElementById('handCursor');
+    const holdBar       = document.getElementById('holdBar');
+    const camVideo      = document.getElementById('cam');
+    const handCanvas    = document.getElementById('handCanvas');
+    const skeletonLabel = document.getElementById('skeletonLabel');
+    const privacyOv     = document.getElementById('privacyOverlay');
+    const privacyOk     = document.getElementById('privacyOk');
+    const errorNote     = document.getElementById('errorNote');
+    const hudItems      = document.querySelectorAll('.hud-item');
+
+    const ctx = handCanvas.getContext('2d');
+
+    let cards = [];
+    let cardCenters = [];
+    let currentIndex = 0;
+    let lastIndex = -1;
+    let selectedIndex = -1;
+
+    let cursorTargetX = window.innerWidth / 2;
+    let cursorTargetY = window.innerHeight / 2;
+    let cursorSmoothX = cursorTargetX;
+    let cursorSmoothY = cursorTargetY;
+
+    let palmPrev = null;
+    let palmSmooth = null;
+    const PALM_SMOOTH = 0.35;
+    const DEAD_ZONE = 0.005;
+    const SCROLL_SPEED = 5500;
+
+    const HOLD_MS = {
+        FIST: 550,
+        ONE: 400,
+        TWO: 450,
+        THREE: 450,
+        FOUR: 550,
+        FIVE: 400
+    };
+    const COOLDOWN_MS = {
+        FIST: 1300,
+        ONE: 700,
+        TWO: 700,
+        THREE: 700,
+        FOUR: 1300,
+        FIVE: 700
+    };
+    const STABLE_FRAMES = 3;
+    const TRANSITION_LOCK_MS = 280;
+
+    let currentGesture = null;
+    let candidateGesture = null;
+    let candidateFrames = 0;
+    let gestureStart = 0;
+    let lockedUntil = 0;
+    const lastFired = {};
+
+    let audioCtx = null;
+
+    function initAudio() {
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn('Audio unavailable');
+        }
+    }
+
+    function beep(freq, duration, vol, type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const sfx = {
+        tick:   () => beep(1500, 0.03, 0.02, 'sine'),
+        select: () => { beep(880, 0.07, 0.05, 'sine'); setTimeout(() => beep(1320, 0.1, 0.035, 'sine'), 55); },
+        reset:  () => { beep(220, 0.15, 0.05, 'sine'); setTimeout(() => beep(160, 0.2, 0.04, 'sine'), 90); },
+        theme:  () => { beep(660, 0.08, 0.045, 'triangle'); setTimeout(() => beep(990, 0.12, 0.035, 'triangle'), 70); }
+    };
+
+    // Load images from files
+    function loadFiles(files) {
+        const images = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 200);
+        if (images.length === 0) return;
+
+        cards.forEach(card => {
+            const img = card.querySelector('img');
+            if (img && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+        });
+
+        gallery.innerHTML = '';
+        cards = [];
+        cardCenters = [];
+        currentIndex = 0;
+        lastIndex = -1;
+        selectedIndex = -1;
+
+        images.forEach((file, i) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.alt = 'Image ' + (i + 1);
+            img.decoding = 'async';
+            card.appendChild(img);
+            gallery.appendChild(card);
+            cards.push(card);
+        });
+
+        requestAnimationFrame(() => {
+            cachePositions();
+            emptyState.classList.add('hidden');
+            hud.classList.add('visible');
+            setStatus('Ready');
+            updateCounter(0);
+            cards[0].classList.add('active');
+            lastIndex = 0;
+            currentIndex = 0;
+        });
+    }
+
+    function cachePositions() {
+        cardCenters = cards.map(c => c.offsetLeft + c.offsetWidth / 2);
+    }
+
+    function openFilePicker() { fileInput.click(); }
+
+    uploadBtn.addEventListener('click', openFilePicker);
+    emptyBtn.addEventListener('click', openFilePicker);
+    emptyState.addEventListener('click', openFilePicker);
+
+    fileInput.addEventListener('change', (e) => {
+        loadFiles(e.target.files);
+        fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+        window.addEventListener(evt, (e) => {
+            e.preventDefault();
+            emptyState.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        window.addEventListener(evt, (e) => {
+            e.preventDefault();
+            emptyState.classList.remove('dragover');
+        });
+    });
+
+    window.addEventListener('drop', (e) => {
+        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+            loadFiles(e.dataTransfer.files);
+        }
+    });
+
+    function scrollToCard(idx, smooth) {
+        if (idx < 0 || idx >= cards.length) return;
+        const card = cards[idx];
+        const targetLeft = card.offsetLeft - (gallery.clientWidth - card.offsetWidth) / 2;
+        gallery.scrollTo({
+            left: targetLeft,
+            behavior: smooth === false ? 'auto' : 'smooth'
+        });
+    }
+
+    let scrollUpdatePending = false;
+
+    gallery.addEventListener('scroll', () => {
+        if (scrollUpdatePending) return;
+        scrollUpdatePending = true;
+        requestAnimationFrame(() => {
+            scrollUpdatePending = false;
+            updateActiveCard();
+            updateProgress();
+        });
+    }, { passive: true });
+
+    function updateActiveCard() {
+        if (cards.length === 0) return;
+        const centerX = gallery.scrollLeft + gallery.clientWidth / 2;
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < cardCenters.length; i++) {
+            const d = Math.abs(cardCenters[i] - centerX);
+            if (d < bestDist) { bestDist = d; bestIdx = i; }
+        }
+
+        if (bestIdx !== currentIndex) {
+            if (cards[currentIndex]) cards[currentIndex].classList.remove('active');
+            cards[bestIdx].classList.add('active');
+            currentIndex = bestIdx;
+
+            if (bestIdx !== lastIndex) {
+                lastIndex = bestIdx;
+                updateCounter(bestIdx);
+                sfx.tick();
+            }
+        }
+    }
+
+    function updateProgress() {
+        const scrollWidth = gallery.scrollWidth - gallery.clientWidth;
+        const pct = scrollWidth > 0 ? (gallery.scrollLeft / scrollWidth) * 100 : 0;
+        progressBar.style.width = pct + '%';
+    }
+
+    function updateCounter(idx) {
+        statusCounter.textContent =
+            String(idx + 1).padStart(3, '0') + ' / ' +
+            String(cards.length).padStart(3, '0');
+    }
+
+    function setStatus(text) { statusText.textContent = text; }
+
+    // Finger detection helpers
+    function fingerExtended(hand, tipIdx, pipIdx) {
+        const wrist = hand[0];
+        const tip = hand[tipIdx];
+        const pip = hand[pipIdx];
+        const tipD = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
+        const pipD = Math.hypot(pip.x - wrist.x, pip.y - wrist.y);
+        return tipD > pipD * 1.12;
+    }
+
+    function countFingers(hand) {
+        const idx  = fingerExtended(hand, 8,  6);
+        const mid  = fingerExtended(hand, 12, 10);
+        const ring = fingerExtended(hand, 16, 14);
+        const pink = fingerExtended(hand, 20, 18);
+        return [idx, mid, ring, pink].filter(Boolean).length;
+    }
+
+    function detectGesture(hand) {
+        const count = countFingers(hand);
+        if (count === 0) return 'FIST';
+        if (count === 1) return 'ONE';
+        if (count === 2) return 'TWO';
+        if (count === 3) return 'THREE';
+        if (count === 4) return 'FOUR';
+        return 'FIVE';
+    }
+
+    function updateHud(g) {
+        for (let i = 0; i < hudItems.length; i++) {
+            hudItems[i].classList.toggle('active', hudItems[i].dataset.gesture === g);
+        }
+    }
+
+    function fireGesture(g) {
+        const now = performance.now();
+        if (now - (lastFired[g] || 0) < (COOLDOWN_MS[g] || 500)) return;
+        lastFired[g] = now;
+        lockedUntil = now + TRANSITION_LOCK_MS;
+
+        if (cards.length === 0) return;
+
+        switch (g) {
+            case 'FIST':
+                if (selectedIndex >= 0 && cards[selectedIndex]) {
+                    cards[selectedIndex].classList.remove('selected');
+                    selectedIndex = -1;
+                }
+                scrollToCard(0);
+                sfx.reset();
+                setStatus('Reset');
+                break;
+
+            case 'ONE':
+                if (currentIndex >= 0 && currentIndex < cards.length) {
+                    if (selectedIndex === currentIndex) {
+                        cards[currentIndex].classList.remove('selected');
+                        selectedIndex = -1;
+                        sfx.tick();
+                        setStatus('Deselected');
+                    } else {
+                        if (selectedIndex >= 0 && cards[selectedIndex]) {
+                            cards[selectedIndex].classList.remove('selected');
+                        }
+                        cards[currentIndex].classList.add('selected');
+                        selectedIndex = currentIndex;
+                        sfx.select();
+                        setStatus('Selected · ' + String(currentIndex + 1).padStart(3, '0'));
+                    }
+                }
+                break;
+
+            case 'TWO':
+                if (currentIndex < cards.length - 1) {
+                    scrollToCard(currentIndex + 1);
+                    setStatus('Next');
+                }
+                break;
+
+            case 'THREE':
+                if (currentIndex > 0) {
+                    scrollToCard(currentIndex - 1);
+                    setStatus('Previous');
+                }
+                break;
+
+            case 'FOUR':
+                document.body.classList.toggle('light');
+                sfx.theme();
+                setStatus(document.body.classList.contains('light') ? 'Light' : 'Dark');
+                break;
+
+            case 'FIVE':
+                setStatus('Navigate');
+                break;
+        }
+    }
+
+    // Draw hand landmarks as a skeleton
+    const HAND_CONNECTIONS = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [0,9],[9,10],[10,11],[11,12],
+        [0,13],[13,14],[14,15],[15,16],
+        [0,17],[17,18],[18,19],[19,20],
+        [5,9],[9,13],[13,17]
+    ];
+
+    function drawHandSkeleton(hand) {
+        const w = handCanvas.width;
+        const h = handCanvas.height;
+
+        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card-bg').trim() || '#111';
+        ctx.fillRect(0, 0, w, h);
+
+        if (!hand) {
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#fff';
+            ctx.font = '10px monospace';
+            ctx.globalAlpha = 0.3;
+            ctx.textAlign = 'center';
+            ctx.fillText('NO HAND', w / 2, h / 2 + 3);
+            ctx.globalAlpha = 1;
+            return;
+        }
+
+        // Mirrored coordinates
+        const points = hand.map(p => ({
+            x: (1 - p.x) * w,
+            y: p.y * h
+        }));
+
+        const accent = '#00e676';
+
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.85;
+
+        HAND_CONNECTIONS.forEach(([a, b]) => {
+            ctx.beginPath();
+            ctx.moveTo(points[a].x, points[a].y);
+            ctx.lineTo(points[b].x, points[b].y);
+            ctx.stroke();
+        });
+
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 1;
+
+        points.forEach((p, i) => {
+            const r = (i === 8 || i === 4) ? 4 : (i === 0 ? 3.5 : 2.5);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    function renderLoop() {
+        cursorSmoothX += (cursorTargetX - cursorSmoothX) * 0.28;
+        cursorSmoothY += (cursorTargetY - cursorSmoothY) * 0.28;
+
+        handCursor.style.transform =
+            'translate(' + (cursorSmoothX - 23) + 'px,' + (cursorSmoothY - 23) + 'px)';
+
+        requestAnimationFrame(renderLoop);
+    }
+    renderLoop();
+
+    let handLandmarker = null;
+    let lastVideoTime = -1;
+    let lastDetectTime = 0;
+    const DETECT_INTERVAL = 33;
+    let lastHandData = null;
+
+    async function initHandTracking() {
+        const vision = await FilesetResolver.forVisionTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+        );
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath:
+                    'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+                delegate: 'GPU'
+            },
+            runningMode: 'VIDEO',
+            numHands: 1
+        });
+
+        // Simple constraints, most compatible with mobile browsers
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' }
+        });
+        camVideo.srcObject = stream;
+        await camVideo.play();
+        setStatus('Ready');
+
+        skeletonLabel.textContent = 'HAND';
+
+        function loop() {
+            requestAnimationFrame(loop);
+
+            const now = performance.now();
+            if (now - lastDetectTime < DETECT_INTERVAL) return;
+            lastDetectTime = now;
+
+            if (camVideo.readyState < 2) return;
+            if (camVideo.currentTime === lastVideoTime) return;
+            lastVideoTime = camVideo.currentTime;
+
+            const result = handLandmarker.detectForVideo(camVideo, now);
+
+            if (result.landmarks && result.landmarks.length > 0) {
+                const hand = result.landmarks[0];
+                lastHandData = hand;
+                drawHandSkeleton(hand);
+                processHand(hand, now);
+            } else {
+                lastHandData = null;
+                drawHandSkeleton(null);
+                palmPrev = null;
+                palmSmooth = null;
+                candidateGesture = null;
+                candidateFrames = 0;
+                currentGesture = null;
+                holdBar.style.width = '0%';
+                handCursor.style.display = 'none';
+                updateHud(null);
+                skeletonLabel.textContent = 'NO HAND';
+            }
+        }
+        loop();
+    }
+
+    function processHand(hand, now) {
+        skeletonLabel.textContent = 'HAND';
+
+        const rawGesture = detectGesture(hand);
+
+        if (rawGesture === candidateGesture) {
+            candidateFrames++;
+        } else {
+            candidateGesture = rawGesture;
+            candidateFrames = 1;
+        }
+        const stable = candidateFrames >= STABLE_FRAMES ? rawGesture : null;
+
+        const indexTip = hand[8];
+        cursorTargetX = (1 - indexTip.x) * window.innerWidth;
+        cursorTargetY = indexTip.y * window.innerHeight;
+        handCursor.style.display = 'block';
+
+        // Palm drives horizontal navigation only in FIVE mode
+        const palm = hand[9];
+        const palmX = 1 - palm.x;
+
+        if (palmSmooth === null) palmSmooth = palmX;
+        else palmSmooth += (palmX - palmSmooth) * PALM_SMOOTH;
+
+        const navigable = cards.length > 0 &&
+                          stable === 'FIVE' &&
+                          now >= lockedUntil;
+
+        if (navigable && palmPrev !== null) {
+            const dx = palmSmooth - palmPrev;
+            if (Math.abs(dx) > DEAD_ZONE) {
+                const delta = (dx - Math.sign(dx) * DEAD_ZONE) * SCROLL_SPEED;
+                gallery.scrollLeft -= delta;
+            }
+        }
+        palmPrev = palmSmooth;
+
+        if (now < lockedUntil) {
+            holdBar.style.width = '0%';
+            updateHud(null);
+        } else {
+            if (stable !== currentGesture) {
+                currentGesture = stable;
+                gestureStart = now;
+                updateHud(stable);
+            }
+            if (stable && HOLD_MS[stable]) {
+                const progress = Math.min((now - gestureStart) / HOLD_MS[stable], 1);
+                holdBar.style.width = (progress * 100) + '%';
+                if (progress >= 1) fireGesture(stable);
+            } else {
+                holdBar.style.width = '0%';
+            }
+        }
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            cachePositions();
+            updateActiveCard();
+        }, 150);
+    });
+
+    // Boot
+    privacyOk.addEventListener('click', async () => {
+        initAudio();
+        privacyOk.disabled = true;
+        privacyOk.textContent = 'Requesting camera…';
+        errorNote.classList.remove('show');
+
+        try {
+            await initHandTracking();
+            privacyOv.style.display = 'none';
+        } catch (err) {
+            console.error(err);
+            privacyOk.disabled = false;
+            privacyOk.textContent = 'Retry Camera';
+            errorNote.textContent = 'Camera access failed. Check permissions in your browser and try again. On mobile, the page must be on localhost or https.';
+            errorNote.classList.add('show');
+            setStatus('Camera error');
+            skeletonLabel.textContent = 'OFF';
+        }
+    });
+
+    drawHandSkeleton(null);
+    setStatus('Awaiting input');
+</script>
+
+</body>
+</html>
